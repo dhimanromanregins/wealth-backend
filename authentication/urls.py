@@ -9,4 +9,7 @@ urlpatterns = [
     path('reset-password/<str:token>/', views.reset_password_form_view, name='reset_password_form'),
     path('reset-password/', views.reset_password_view, name='reset_password'),
     path('profile/', views.profile_view, name='profile'),
+
+
+    path("customers/", views.CustomerCreateAPIView.as_view(), name="create-customer"),
 ]

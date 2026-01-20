@@ -1,4 +1,5 @@
 from rest_framework import status, generics
+from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -8,14 +9,17 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.shortcuts import render
+import string
+import random
 from django.http import HttpResponseNotAllowed
-from .models import User, PasswordResetToken
+from .models import User, PasswordResetToken, Customer
 from .serializers import (
     UserSignUpSerializer, 
     UserLoginSerializer, 
     ForgotPasswordSerializer,
     ResetPasswordSerializer,
-    UserProfileSerializer
+    UserProfileSerializer,
+    CustomerSerializer
 )
 
 def get_tokens_for_user(user):
@@ -234,3 +238,76 @@ def reset_password_form_view(request, token):
     
     else:
         return HttpResponseNotAllowed(['GET', 'POST'])
+    
+
+class CustomerCreateAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = CustomerSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data.get("email")
+
+        if User.objects.filter(email=email).exists():
+            return Response(
+                {"error": "User with this email already exists."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Generate random password
+        password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+
+        try:
+            # Create User
+            user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=password
+            )
+
+            # Create Customer (NO user field)
+            customer = serializer.save()
+
+            # Send email
+            subject = "Your Account Credentials"
+            login_url = request.build_absolute_uri("/login/")
+            message = f"""
+Hello,
+
+Your account has been created successfully.
+
+Email: {email}
+Password: {password}
+
+Login here: {login_url}
+
+Please change your password after logging in.
+
+Best regards,
+Multifly Team
+"""
+
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": "Something went wrong", "details": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        return Response(
+            {
+                "message": "Customer and user created successfully. Password sent via email.",
+                "data": CustomerSerializer(customer).data
+            },
+            status=status.HTTP_201_CREATED
+        )

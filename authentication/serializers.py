@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, PasswordResetToken
+from .models import User, PasswordResetToken, Customer
 
 class UserSignUpSerializer(serializers.ModelSerializer):
     """Serializer for user registration"""
@@ -119,3 +119,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'email', 'first_name', 'last_name', 'is_verified', 'created_at')
         read_only_fields = ('id', 'email', 'is_verified', 'created_at')
+
+
+class CustomerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = "__all__"
+        read_only_fields = ("date", "time")
