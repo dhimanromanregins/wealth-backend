@@ -287,7 +287,7 @@ Login here: {login_url}
 Please change your password after logging in.
 
 Best regards,
-Multifly Team
+Awe space Team
 """
 
             send_mail(
